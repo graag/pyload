@@ -4,7 +4,10 @@
 
 from __future__ import division
 
-import Image
+try:
+    from PIL import Image
+except ImportError:
+    import Image
 import ImageDraw
 import cStringIO
 import math
