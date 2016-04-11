@@ -34,7 +34,7 @@ class ImageSequence:
 class CircleCaptcha(OCR):
     __name__    = "CircleCaptcha"
     __type__    = "ocr"
-    __version__ = "1.05"
+    __version__ = "1.08"
     __status__  = "testing"
 
     __description__ = """Circle captcha ocr plugin"""
@@ -141,7 +141,7 @@ class CircleCaptcha(OCR):
                 jump = False
                 continue
 
-            if (curpix < self.BACKGROUND and color == -1) or (curpix is color and color > -1):
+            if (curpix < self.BACKGROUND and color == -1) or (curpix == color and color > -1):
                 if jump is False:
                     #: Found pixel
                     curcolor = curpix
@@ -171,7 +171,7 @@ class CircleCaptcha(OCR):
                     #: Found last pixel and the first white
                     break
 
-            if (curpix < self.BACKGROUND and color == -1) or (curpix is color and color > -1):
+            if (curpix < self.BACKGROUND and color == -1) or (curpix == color and color > -1):
                 #: Found pixel
                 curcolor = curpix
                 newx = x, curcolor
@@ -202,7 +202,7 @@ class CircleCaptcha(OCR):
                     #: Found last pixel and the first white
                     break
 
-            if (curpix < self.BACKGROUND and color == -1) or (curpix is color and color > -1):
+            if (curpix < self.BACKGROUND and color == -1) or (curpix == color and color > -1):
                 #: Found pixel
                 curcolor = curpix
                 newy = y, color
@@ -524,7 +524,7 @@ class CircleCaptcha(OCR):
             return result
 
         curpix = pix[x, y]
-        if (curpix is color and color > -1) or (curpix < self.BACKGROUND and color == -1):
+        if (curpix == color and color > -1) or (curpix < self.BACKGROUND and color == -1):
             if curpix > self.BLACKCOLOR:
                 result = 1
             else:
@@ -534,7 +534,7 @@ class CircleCaptcha(OCR):
         if exact is False:
             if x + 1 < im.size[0]:
                 curpix = pix[x+1, y]
-                if (curpix is color and color > -1) or (curpix < self.BACKGROUND and color == -1):
+                if (curpix == color and color > -1) or (curpix < self.BACKGROUND and color == -1):
                     if curpix > self.BLACKCOLOR:
                         result = 1
                 if curpix <= self.BLACKCOLOR:
@@ -542,7 +542,7 @@ class CircleCaptcha(OCR):
 
             if x > 0:
                 curpix = pix[x-1, y]
-                if (curpix is color and color > -1) or (curpix < self.BACKGROUND and color == -1):
+                if (curpix == color and color > -1) or (curpix < self.BACKGROUND and color == -1):
                     if curpix > self.BLACKCOLOR:
                         result = 1
                 if curpix <= self.BLACKCOLOR:

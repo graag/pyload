@@ -2,15 +2,15 @@
 
 import re
 
-from module.network.RequestFactory import getURL
-from module.plugins.internal.SimpleHoster import SimpleHoster, create_getInfo
-from module.plugins.internal.utils import json
+from module.network.RequestFactory import getURL as get_url
+from module.plugins.internal.SimpleHoster import SimpleHoster
+from module.plugins.internal.misc import json
 
 
 class OpenloadIo(SimpleHoster):
     __name__    = "OpenloadIo"
     __type__    = "hoster"
-    __version__ = "0.13"
+    __version__ = "0.15"
     __status__  = "testing"
 
     __pattern__ = r'https?://(?:www\.)?openload\.(co|io)/(f|embed)/(?P<ID>[\w\-]+)'
@@ -37,7 +37,7 @@ class OpenloadIo(SimpleHoster):
 
     @classmethod
     def _load_json(cls, uri):
-        return json.loads(getURL(cls.API_URL + uri))
+        return json.loads(get_url(cls.API_URL + uri))
 
 
     @classmethod
@@ -61,12 +61,18 @@ class OpenloadIo(SimpleHoster):
         file_id     = self.info['pattern']['ID']
         ticket_json = self._load_json(self._DOWNLOAD_TICKET_URI_PATTERN.format(file_id))
 
+        if ticket_json['status'] == 404:
+            self.offline(ticket_json['msg'])
+
+        elif ticket_json['status'] == 509:
+            self.temp_offline(ticket_json['msg'])
+
+        elif ticket_json['status'] != 200:
+            self.fail(ticket_json['msg'])
+
         self.wait(ticket_json['result']['wait_time'])
 
         ticket = ticket_json['result']['ticket']
 
         download_json = self._load_json(self._DOWNLOAD_FILE_URI_PATTERN.format(file_id, ticket))
         self.link = download_json['result']['url']
-
-
-getInfo = create_getInfo(OpenloadIo)

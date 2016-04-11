@@ -3,8 +3,8 @@
 import re
 import time
 
-from module.plugins.internal.SimpleHoster import SimpleHoster, create_getInfo
-from module.plugins.internal.utils import json, timestamp
+from module.plugins.internal.SimpleHoster import SimpleHoster
+from module.plugins.internal.misc import json, timestamp
 
 
 def convert_decimal_prefix(m):
@@ -15,7 +15,7 @@ def convert_decimal_prefix(m):
 class UlozTo(SimpleHoster):
     __name__    = "UlozTo"
     __type__    = "hoster"
-    __version__ = "1.18"
+    __version__ = "1.22"
     __status__  = "testing"
 
     __pattern__ = r'http://(?:www\.)?(uloz\.to|ulozto\.(cz|sk|net)|bagruj\.cz|zachowajto\.pl)/(?:live/)?(?P<ID>\w+/[^/?]*)'
@@ -23,6 +23,7 @@ class UlozTo(SimpleHoster):
                    ("use_premium" , "bool", "Use premium account if available"                 , True),
                    ("fallback"    , "bool", "Fallback to free download if premium fails"       , True),
                    ("chk_filesize", "bool", "Check file size"                                  , True),
+                   ("captcha"     , "Image;Sound", "Captcha recognition"                       , "Image"),
                    ("max_wait"    , "int" , "Reconnect if waiting time is greater than minutes", 10  )]
 
     __description__ = """Uloz.to hoster plugin"""
@@ -78,10 +79,21 @@ class UlozTo(SimpleHoster):
             self.log_debug("xapca: %s" % xapca)
 
             data = json.loads(xapca)
-            captcha_value = self.captcha.decrypt(data['image'])
+            if self.config.get("captcha") == "Sound":
+                captcha_value = self.captcha.decrypt(str(data['sound']), input_type='wav', ocr="UlozTo")
+            else:
+                captcha_value = self.captcha.decrypt(data['image'])
             self.log_debug("CAPTCHA HASH: " + data['hash'], "CAPTCHA SALT: %s" % data['salt'], "CAPTCHA VALUE: " + captcha_value)
 
             inputs.update({'timestamp': data['timestamp'], 'salt': data['salt'], 'hash': data['hash'], 'captcha_value': captcha_value})
+
+        elif all(key in inputs for key in ('do', 'cid', 'ts', 'sign', '_token_', 'sign_a', 'adi')):
+            # New version 1.4.2016 
+            self.log_debug('Using "new" > 1.4.2016')
+
+            inputs.update({'do': inputs['do'], '_token_': inputs['_token_'],
+                            'ts': inputs['ts'], 'cid': inputs['cid'],
+                            'adi': inputs['adi'], 'sign_a': inputs['sign_a'],'sign': inputs['sign']})
 
         else:
             self.error(_("CAPTCHA form changed"))
@@ -126,7 +138,7 @@ class UlozTo(SimpleHoster):
 
 
     def check_download(self):
-        check = self.check_file({
+        check = self.scan_download({
             'wrong_captcha': ">An error ocurred while verifying the user",
             'offline'      : re.compile(self.OFFLINE_PATTERN),
             'passwd'       : self.PASSWD_PATTERN,
@@ -135,7 +147,8 @@ class UlozTo(SimpleHoster):
         })
 
         if check == "wrong_captcha":
-            self.retry_captcha()
+            self.captcha.invalid()
+            self.retry(msg=_("Wrong captcha code"))
 
         elif check == "offline":
             self.offline()
@@ -153,6 +166,3 @@ class UlozTo(SimpleHoster):
             self.fail(_("Server error, file not downloadable"))
 
         return super(UlozTo, self).check_download()
-
-
-getInfo = create_getInfo(UlozTo)

@@ -6,14 +6,14 @@
 import re
 import urlparse
 
-from module.plugins.internal.SimpleHoster import SimpleHoster, create_getInfo
-from module.plugins.internal.utils import html_unescape
+from module.plugins.internal.SimpleHoster import SimpleHoster
+from module.plugins.internal.misc import html_unescape
 
 
 class GoogledriveCom(SimpleHoster):
     __name__    = "GoogledriveCom"
     __type__    = "hoster"
-    __version__ = "0.17"
+    __version__ = "0.21"
     __status__  = "testing"
 
     __pattern__ = r'https?://(?:www\.)?(drive|docs)\.google\.com/(file/d/\w+|uc\?.*id=)'
@@ -31,30 +31,24 @@ class GoogledriveCom(SimpleHoster):
     NAME_PATTERN    = r'(?:<title>|class="uc-name-size".*>)(?P<N>.+?)(?: - Google Drive</title>|</a> \()'
     OFFLINE_PATTERN = r'align="center"><p class="errorMessage"'
 
-    LINK_FREE_PATTERN = r'"([^"]+uc\?.*?)"'
-
 
     def setup(self):
-        self.multiDL        = True
+        self.multiDL         = True
         self.resume_download = True
         self.chunk_limit     = 1
 
 
     def handle_free(self, pyfile):
         for _i in xrange(2):
-            m = re.search(self.LINK_FREE_PATTERN, self.data)
+            m = re.search(r'"([^"]+uc\?.*?)"', self.data)
 
             if m is None:
                 return
 
-            link = self.fixurl(link, "https://docs.google.com/")
-            dl   = self.isdownload(link, redirect=False)
+            link = self.fixurl(m.group(1), "https://docs.google.com/")
 
-            if not dl:
-                self.data = self.load(link)
+            if re.search(r'/uc\?.*&confirm=', link):
+                self.link = link
+                return
             else:
-                self.link = dl
-                break
-
-
-getInfo = create_getInfo(GoogledriveCom)
+                self.data = self.load(link)
